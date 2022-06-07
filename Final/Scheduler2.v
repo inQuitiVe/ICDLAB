@@ -5,7 +5,7 @@
 `define INPUT_DATA_SIZE 100
 
 
-module Scheduler_2 (
+module Scheduler2 (
     input                           clk,
     input                           rst,
     input                           i_rdy_1,

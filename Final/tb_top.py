@@ -217,8 +217,8 @@ def FP16add(fp1,fp2):
 
     return deinitial(result)
 
-mode = input("0 : generate weight and adjacency\n1 : generate input \n2 : calculate real ans\n3 : generate adjacency\n4 : generate verilog golden\n5 : generate verilog input\nyour mode : ")
-if (mode == '0') : 
+mode = input("0 : generate weight and adjacency\n1 : generate input \n2 : calculate real ans\n3 : generate adjacency\n4 : generate verilog golden\n5 : generate verilog input\n6 : all\nyour mode : ")
+if (mode == '0' or mode == "6") : 
     with open("weight.txt","w") as f:
         for i in range(32):
             for j in range(8):
@@ -244,7 +244,7 @@ if (mode == '0') :
                 print(adjacency[i][j],end=" ",file=f)
             print("", file=f)    
 
-if (mode == '1') : 
+if (mode == '1' or mode == "6") : 
     with open("input.txt","w") as f:
         for i in range(100):
             for j in range(32):
@@ -257,7 +257,7 @@ if (mode == '1') :
                 print(d2b(ipt),end=" ",file=f)
             print("", file=f)
     
-if (mode == '2') :
+if (mode == '2' or mode == "6") :
     weight = np.zeros((32,8))
     adjacency = np.zeros((100,100),dtype=np.int8)
     input = np.zeros((100,32))
@@ -318,26 +318,22 @@ if (mode == '2') :
                 print(outV2[i][j],end=" ",file=f1)
             print("",file=f1)
     
-if (mode == '3') :
+if (mode == '3' or mode == "6") :
     with open ("weight.txt","r") as f1:
         x = 0
     with open ("adjacency.txt","r") as f1:
         x = 0
         with open ("adjacency_v.txt","w") as f2:
-            print("'{",file=f2)
             for i in f1.readlines():
                 y = 0
-                print("'{",end="",file=f2)
-                for j in i.split(" ")[:-1]:
-                    print("1'b",end="",file=f2)
+                print("assign adj[",x,"] = 100'b",end="",file=f2)
+                for j in i.split(" ")[:-1][::-1]:
                     print(j ,end="",file=f2)
-                    if y != len(i.split(" "))-2: print(", ",end="",file=f2)
                     y += 1
-                print("}" if x ==  len(f1.readlines())-1 else "},",file=f2)
+                print(";",file=f2)
                 x += 1
-            print("}",file=f2)
 
-if (mode == "4") :
+if (mode == "4" or mode == "6") :
     weight = np.zeros((32,8),dtype=np.int32)
     adjacency = np.zeros((100,100),dtype=np.int8)
     input = np.zeros((100,32),dtype=np.int32)
@@ -381,7 +377,7 @@ if (mode == "4") :
             for j in range(8):
                 print(d2b(out2[i][j]),file=f1)
 
-if (mode == '5') : 
+if (mode == '5' or mode == "6") : 
     weight = np.zeros((32,8),dtype=np.int32)
     input = np.zeros((100,32),dtype=np.int32)
     with open ("weight.txt","r") as f1:
@@ -400,30 +396,56 @@ if (mode == '5') :
                 input[x][y] = int(j,2)
                 y += 1
             x += 1
+    
     with open ("input_v.txt","w") as f1:
         with open ("cmd_v.txt","w") as f2:
             w_column_cnt = 0
             for i in range(4):
+                control = []
                 print(d2b(w_column_cnt),file=f1)
-                print('0',file=f2)
+                control.append("0")
                 for j in range(32):
                     print(d2b(weight[j][w_column_cnt]),file=f1)
-                    print('0',file=f2)
+                    control.append("0")
                 w_column_cnt += 1
                 print(d2b(w_column_cnt),file=f1)
-                print('0',file=f2)
+                control.append("0")
                 for j in range(32):
                     print(d2b(weight[j][w_column_cnt]),file=f1)
-                    print('0',file=f2)
+                    control.append("0")
                 w_column_cnt += 1
-                for i in range (100):
-                    for j in range (32):
-                        if (input[i][j] != 0):
-                            print(d2b(j,lenth=8),end="",file=f1)
-                            print(d2b(i,lenth=8),file=f1)
-                            print('0',file=f2)
-                            print(d2b(input[i][j]),file=f1)
-                            print('1' if j==31 else '0',file=f2)
+                
+                for k in range (100):
+                    for m in range (32):
+                        output = 0
+                        if (input[k][m] != 0):
+                            print(d2b(k,lenth=8),end="",file=f1)
+                            print(d2b(m,lenth=8),file=f1)
+                            control.append("0")
+                            print(d2b(input[k][m]),file=f1)
+                            output = 1
+                        if k==99 and m==31:
+                            control[-1] = "1"
+                        elif output==1:
+                            control.append("0")
+                for x in control:
+                    print(x,file=f2)
+                        
 
-
+# for k in range (100):
+#                     for m in range (32):
+#                         output = 0
+#                         if (input[k][m] != 0):
+#                             input_v.append()
+#                             print(d2b(m,lenth=8),end="",file=f1)
+#                             # print(k,m)
+#                             print(d2b(k,lenth=8),file=f1)
+#                             print('0',file=f2)
+#                             print(d2b(input[k][m]),file=f1)
+#                             output = 1
+#                         if k==99 and m==31:
+#                             print('1',file=f2)
+#                         elif output==1:
+#                             print('0',file=f2)
+#                             print(k,m)
 

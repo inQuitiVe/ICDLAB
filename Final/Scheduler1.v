@@ -79,9 +79,7 @@ assign o_result_1 = result_1_r;
 assign o_result_2 = result_2_r;
 assign o_w_switch = w_switch_r;
 
-always@(*) begin
 
-end
 
 
 integer i;
@@ -135,7 +133,7 @@ always@(*) begin
     pe2_weight_w = pe1_weight_r;
     if (i_rdy) begin
         if (i_row_ptr != row_ptr_r) begin // row switch
-            if (i_pe1_rdy && i_pe2_rdy) begin
+            if (i_pe1_done && i_pe2_done) begin
                 o_row_idx_w = i_row_ptr;
                 pe1_ctrl_w = 1'b0; // reset
                 pe2_ctrl_w = 1'b0; // reset
@@ -145,7 +143,7 @@ always@(*) begin
             end
         end
         else begin
-            if (i_pe1_rdy && i_pe2_rdy) begin
+            if (i_pe1_done && i_pe2_done) begin
                 pe1_input_w = i_data;
                 pe2_input_w = i_data;
                 pe1_weight_w = w_data_1_r[i_col_idx];
