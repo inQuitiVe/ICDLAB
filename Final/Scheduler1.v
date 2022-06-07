@@ -132,27 +132,28 @@ always@(*) begin
     pe1_weight_w = pe1_weight_r;
     pe2_weight_w = pe1_weight_r;
     if (i_rdy) begin
-        if (i_row_ptr != row_ptr_r) begin // row switch
-            if (i_pe1_done && i_pe2_done) begin
-                o_row_idx_w = i_row_ptr;
-                pe1_ctrl_w = 1'b0; // reset
-                pe2_ctrl_w = 1'b0; // reset
+        pe1_input_w = i_data;
+        pe2_input_w = i_data;
+        pe1_weight_w = w_data_1_r[i_col_idx];
+        pe2_weight_w = w_data_2_r[i_col_idx];
+        row_ptr_w = i_row_ptr;
+        if (i_pe1_done && i_pe2_done) begin
                 result_1_w = i_pe1_result;
                 result_2_w = i_pe2_result;
                 o_valid_w = 1'b1;
-            end
         end
         else begin
-            if (i_pe1_done && i_pe2_done) begin
-                pe1_input_w = i_data;
-                pe2_input_w = i_data;
-                pe1_weight_w = w_data_1_r[i_col_idx];
-                pe2_weight_w = w_data_2_r[i_col_idx];
-                row_ptr_w = i_row_ptr;
+                result_1_w = result_1_r;
+                result_2_w = result_2_r;
+                o_valid_w = 1'b0;
+        end
+        if ((i_row_ptr != row_ptr_r) || i_done) begin // row switch
+                pe1_ctrl_w = 1'b0; // reset
+                pe2_ctrl_w = 1'b0; // reset
+        end
+        else begin
                 pe1_ctrl_w = 1'b1; // sum
                 pe2_ctrl_w = 1'b1; // sum
-                o_valid_w = 1'b0;
-            end
         end
     end
 end
