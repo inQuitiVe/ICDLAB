@@ -17,6 +17,7 @@ module Scheduler2 (
     input [`INPUT_DATA_BITS-1:0]    i_col_data_2,
     input [2:0]                     i_col_idx_1,
     input [2:0]                     i_col_idx_2,
+    input [`OUTPUT_ROW_BITS-1:0]    i_row_idx,
     output [`INPUT_DATA_BITS-1:0]   o_col_1,
     output [`INPUT_DATA_BITS-1:0]   o_col_2,
     output [2:0]                    o_col_idx_1,
@@ -50,6 +51,8 @@ module Scheduler2 (
     reg [7:0]                  output_cnt, output_cnt_w;
     reg [2:0]                  col_idx_1, col_idx_1_w;
     reg [2:0]                  col_idx_2, col_idx_2_w;
+    reg [`OUTPUT_ROW_BITS-1:0] row_idx_1_r, row_idx_1_w;
+    reg [`OUTPUT_ROW_BITS-1:0] row_idx_2_r, row_idx_2_w;
     reg [2:0]                  o_col_idx_1_r, o_col_idx_1_w;
     reg [2:0]                  o_col_idx_2_r, o_col_idx_2_w;
     reg [`INPUT_DATA_BITS-1:0] o_data_1_r, o_data_1_w;
@@ -75,11 +78,15 @@ module Scheduler2 (
             busy_w = 1;
             col_idx_1_w = i_col_idx_1;
             col_idx_2_w = i_col_idx_2;
+            row_idx_1_w = i_row_idx;
+            row_idx_2_w = i_row_idx;
         end 
         else begin
             busy_w = 0;
             col_idx_1_w = 0;
             col_idx_2_w = 0;
+            row_idx_1_w = 0;
+            row_idx_2_w = 0;
         end
     end
 
@@ -198,6 +205,8 @@ module Scheduler2 (
             o_col_2_r <= 0;
             busy <= 0;
             o_rdy <= 0;
+            row_idx_1_r <=  0;
+            row_idx_2_r <=  0;
 
             for (i = 0; i < `INPUT_DATA_SIZE; i=i+1) begin
                 out_buffer_1_r[i] <= 0;
@@ -226,6 +235,8 @@ module Scheduler2 (
             o_col_2_r <= o_col_2_w;
             busy <= busy_w;
             o_rdy <= o_rdy_w;
+            row_idx_1_r <=  row_idx_1_w;
+            row_idx_2_r <=  row_idx_2_w;
 
             for (i = 0; i < `INPUT_DATA_SIZE; i=i+1) begin
                 out_buffer_1_r[i] <= out_buffer_1_w[i];

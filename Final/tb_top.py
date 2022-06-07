@@ -408,8 +408,6 @@ if (mode == '5' or mode == "6") :
                     print(d2b(weight[j][w_column_cnt]),file=f1)
                     control.append("0")
                 w_column_cnt += 1
-                print(d2b(w_column_cnt),file=f1)
-                control.append("0")
                 for j in range(32):
                     print(d2b(weight[j][w_column_cnt]),file=f1)
                     control.append("0")

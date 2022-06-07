@@ -158,6 +158,7 @@ Scheduler2 Scheduler_2 (
     .i_col_data_2(s2_pe2_result),  // PE_4 output
     .i_col_idx_1(s1_col_idx_1),
     .i_col_idx_2(s1_col_idx_2),
+    .i_row_idx(s1_row_idx_1),
     .o_col_1(s2_col_1),            // buffer 1 output
     .o_col_2(s2_col_2),            // buffer 2 output
     .o_col_idx_1(s2_o_col_idx_1),  // buffer 1 idx
@@ -238,7 +239,9 @@ assign o_p15 = o_buf_r[15];
 assign o_rdy = o_rdy_r;
 assign o_result = o_result_r;
 
+
 always@(*) begin
+    s1_done = 0; 
     for (i=0; i<`WEIGHT_ROW_SIZE; i=i+1) w_data1_w[i] = w_data1_r[i];
     for (i=0; i<`WEIGHT_ROW_SIZE; i=i+1) w_data2_w[i] = w_data2_r[i];
     for (j=0; j<`INPUT_DATA_SIZE; j=j+1) i_row_w[j]  = i_row_r[j];
@@ -258,12 +261,13 @@ always@(*) begin
     o_rdy_w = o_rdy_r;
     s1_row_ptr = s1_row_ptr_buffer;
     s1_col_idx = s1_col_idx_buffer;
+    s1_w_data = 0;
     case (state_r)
         IDLE: begin
             o_result_w = 1'b1;
             if (i_req) begin
                 state_w = READ_WEIGHT_ADDR;
-                s1_done = 1'b1;
+                s1_done = 1;
                 
             end
         end
@@ -271,14 +275,14 @@ always@(*) begin
             o_result_w = 1'b0;
             w_col_idx_w = {i_p15, i_p14, i_p13, i_p12, i_p11, i_p10, i_p9, i_p8, i_p7, i_p6, i_p5, i_p4, i_p3, i_p2, i_p1, i_p0};
             state_w = READ_WEIGHT_DATA;
-            s1_done = 1'b0;
+            
         end
         READ_WEIGHT_DATA: begin
             s1_col_idx = w_col_idx_r;
-            s1_done = 1'b0;
+            
             s1_w_data = {i_p15, i_p14, i_p13, i_p12, i_p11, i_p10, i_p9, i_p8, i_p7, i_p6, i_p5, i_p4, i_p3, i_p2, i_p1, i_p0};
             
-            if (w_col_idx_r[0] == 1'b0 && w_cnt_r == `WEIGHT_ROW_SIZE) begin
+            if (w_col_idx_r[0] == 1'b0 && w_cnt_r == `WEIGHT_ROW_SIZE-1) begin
                 state_w = state_r;
                 w_cnt_w = 8'd0;
                 w_col_idx_w = w_col_idx_r + 1;
@@ -311,7 +315,7 @@ always@(*) begin
             i_cnt_w = i_cmd ? 8'd0 : (i_cnt_r + 1);
             state_w = i_cmd ? WAIT : state_r; // i_cmd = 1, pass all input done, switch to WAIT state
             o_result_w = i_cmd ? 1'b1: 1'b0; 
-            s1_done = i_cmd ? 1'b1: 1'b0; 
+            
         end
 
         WAIT: begin

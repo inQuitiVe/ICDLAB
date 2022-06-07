@@ -43,7 +43,7 @@ module PE (
             mul_r <= 16'b0;
             out_r <= 16'b0;
             p_r   <= 16'b0;
-            ctr1  <= 1'b0;
+            ctr1  <= 1'b1;
         end
         else begin
             mul_r <= mul_w;
