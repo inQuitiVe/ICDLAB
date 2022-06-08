@@ -77,7 +77,7 @@ reg  [`INPUT_ROW_BITS-1:0]    s1_row_ptr;
 reg  [`INPUT_ROW_BITS-1:0]    s1_row_ptr_buffer;
 reg  [`INPUT_COL_BITS-1:0]    s1_col_idx;
 reg  [`INPUT_COL_BITS-1:0]    s1_col_idx_buffer;
-reg                           s1_done; // finish whole matrix input pass, next iteration
+reg                        switch; // finish whole matrix input pass, next iteration
 reg  [`DATA_BITS-1:0]         s1_w_data; // Read first column ,done all rows, switch to second column
 wire [`WEIGHT_COL_BITS-1:0]   s1_w_col_idx; //
 reg  [`WEIGHT_COL_BITS-1:0]   w_col_idx_w, w_col_idx_r;
@@ -115,6 +115,7 @@ wire [`DATA_BITS-1:0]         s1_pe1_weight;
 wire [`DATA_BITS-1:0]         s1_pe2_weight;
 reg                           i_s1_rdy=0;
 reg                           i_s2_rdy=0;
+reg                           s1_switch;
 // submodule declaration, TODO: scheduler
 Scheduler1 Scheduler_1(
     .clk(clk),
@@ -124,6 +125,7 @@ Scheduler1 Scheduler_1(
     .i_row_ptr(s1_row_ptr),
     .i_col_idx(s1_col_idx),
     .i_done(s1_done), // finish whole matrix input pass, next iteration
+    .i_switch(s1_switch),
     .i_w_data(s1_w_data), // Read first column ,done all rows, switch to second column
     .i_w_col_idx(s1_w_col_idx), //
     .i_pe1_result(s1_pe1_result),
@@ -239,9 +241,10 @@ assign o_p15 = o_buf_r[15];
 assign o_rdy = o_rdy_r;
 assign o_result = o_result_r;
 
+assign s1_done = i_cmd ? 1'b1 : 1'b0;
 
 always@(*) begin
-    s1_done = 0; 
+    s1_switch = 0; 
     for (i=0; i<`WEIGHT_ROW_SIZE; i=i+1) w_data1_w[i] = w_data1_r[i];
     for (i=0; i<`WEIGHT_ROW_SIZE; i=i+1) w_data2_w[i] = w_data2_r[i];
     for (j=0; j<`INPUT_DATA_SIZE; j=j+1) i_row_w[j]  = i_row_r[j];
@@ -262,12 +265,14 @@ always@(*) begin
     s1_row_ptr = s1_row_ptr_buffer;
     s1_col_idx = s1_col_idx_buffer;
     s1_w_data = 0;
+    w_col_idx_w = w_col_idx_r;
+    s1_data = s1_data_buffer;
     case (state_r)
         IDLE: begin
             o_result_w = 1'b1;
             if (i_req) begin
                 state_w = READ_WEIGHT_ADDR;
-                s1_done = 1;
+                
                 
             end
         end
@@ -275,6 +280,7 @@ always@(*) begin
             o_result_w = 1'b0;
             w_col_idx_w = {i_p15, i_p14, i_p13, i_p12, i_p11, i_p10, i_p9, i_p8, i_p7, i_p6, i_p5, i_p4, i_p3, i_p2, i_p1, i_p0};
             state_w = READ_WEIGHT_DATA;
+            s1_switch = 1;
             
         end
         READ_WEIGHT_DATA: begin
@@ -282,12 +288,12 @@ always@(*) begin
             
             s1_w_data = {i_p15, i_p14, i_p13, i_p12, i_p11, i_p10, i_p9, i_p8, i_p7, i_p6, i_p5, i_p4, i_p3, i_p2, i_p1, i_p0};
             
-            if (w_col_idx_r[0] == 1'b0 && w_cnt_r == `WEIGHT_ROW_SIZE-1) begin
+            if (w_col_idx_r[0] == 1'b0 && w_cnt_r == `WEIGHT_ROW_SIZE) begin
                 state_w = state_r;
                 w_cnt_w = 8'd0;
                 w_col_idx_w = w_col_idx_r + 1;
             end
-            else if (w_col_idx_r[0] == 1'b1 && w_cnt_r == `WEIGHT_ROW_SIZE) begin
+            else if (w_col_idx_r[0] == 1'b1 && w_cnt_r == `WEIGHT_ROW_SIZE-1) begin
                 state_w = READ_INPUT;
                 w_cnt_w = 8'd0;
             end

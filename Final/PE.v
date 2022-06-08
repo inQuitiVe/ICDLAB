@@ -8,7 +8,8 @@ module PE (
     output[15:0] o_result,
     output       o_finish
 );
-    reg ctr1_r, ctr1;
+    reg ctr1;
+    wire ctr1_r;
     reg [15:0] out_r;
     wire[15:0] out_w;
 
@@ -22,7 +23,7 @@ module PE (
     reg [15:0] psum_r, p_r;
     
     assign o_finish = (ctr1==1'b0) ? 1'b1 : 1'b0;
-    assign psum = (ctr1==1'b1) ? out_r :  p_r;
+    assign psum = (ctr1==1'b1) ? out_r : p_r;
 
     // addition
 
@@ -30,13 +31,9 @@ module PE (
 
 	 
 	assign o_result = out_r;
+    assign ctr1_r = InnerAccum_ctr ? 1'b1 : 1'b0;
 
-    always@(negedge clk) begin
-        if(rst) begin
-            psum_r<= i_psum;
-            ctr1_r<= InnerAccum_ctr;
-        end
-    end
+
 
     always@(posedge clk or negedge rst) begin
         if(!rst) begin
@@ -48,7 +45,7 @@ module PE (
         else begin
             mul_r <= mul_w;
             out_r <= out_w;
-            p_r   <= psum_r;
+            p_r   <=     0;
             ctr1  <= ctr1_r;
         end
     end

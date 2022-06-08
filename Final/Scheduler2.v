@@ -3,6 +3,7 @@
 `define INPUT_DATA_BITS 16
 `define INPUT_ROW_SIZE 200
 `define INPUT_DATA_SIZE 100
+`define OUTPUT_ROW_SIZE 100
 
 
 module Scheduler2 (
@@ -36,10 +37,10 @@ module Scheduler2 (
     reg busy, busy_w;
     reg o_rdy, o_rdy_w;
     
-    reg [`INPUT_DATA_BITS-1:0] out_buffer_1_r [`WEIGHT_ROW_SIZE-1:0];
-    reg [`INPUT_DATA_BITS-1:0] out_buffer_1_w [`WEIGHT_ROW_SIZE-1:0];
-    reg [`INPUT_DATA_BITS-1:0] out_buffer_2_r [`WEIGHT_ROW_SIZE-1:0];
-    reg [`INPUT_DATA_BITS-1:0] out_buffer_2_w [`WEIGHT_ROW_SIZE-1:0];
+    reg [`INPUT_DATA_BITS-1:0] out_buffer_1_r [`OUTPUT_ROW_SIZE-1:0];
+    reg [`INPUT_DATA_BITS-1:0] out_buffer_1_w [`OUTPUT_ROW_SIZE-1:0];
+    reg [`INPUT_DATA_BITS-1:0] out_buffer_2_r [`OUTPUT_ROW_SIZE-1:0];
+    reg [`INPUT_DATA_BITS-1:0] out_buffer_2_w [`OUTPUT_ROW_SIZE-1:0];
     reg [`INPUT_DATA_BITS-1:0] o_col_1_r;
     reg [`INPUT_DATA_BITS-1:0] o_col_1_w;
     reg [`INPUT_DATA_BITS-1:0] o_col_2_r;
@@ -98,6 +99,7 @@ module Scheduler2 (
 
     // Getting result element from first layer PEs
     always @(*) begin
+
         if (busy) begin
             o_data_1_w = i_data_1;
             o_data_2_w = i_data_2;
@@ -105,26 +107,27 @@ module Scheduler2 (
             o_adj_2_w = adj[buf_cnt_2][row_cnt_2];
             o_pe_valid_w = 0;
             // One element * one element of adj matrix is done 
-            if (i_pe_done_1 && i_pe_done_2) begin
-                out_buffer_1_w[buf_cnt_1] = out_buffer_1_r[buf_cnt_1] + i_col_data_1;
-                out_buffer_2_w[buf_cnt_2] = out_buffer_2_r[buf_cnt_2] + i_col_data_2;
-                if (buf_cnt_1 == 99 && buf_cnt_2 == 99) begin
-                    buf_cnt_1_w = 0;
-                    buf_cnt_2_w = 0;
-                    // One column of adj matrix is finished
-                    if (row_cnt_1 == 99 && row_cnt_2 == 99) begin
-                        // When row_index and buf_cnt counts to 100
-                        // One column of output is finished
-                        o_result_w = 1'b1;
-                        //busy_w = 0;
-                        row_cnt_1_w = 0;
-                        row_cnt_2_w = 0;
-                        o_rdy_w = 1;
-                    end else begin
-                        row_cnt_1_w = row_cnt_1 + 1;
-                        row_cnt_2_w = row_cnt_2 + 1;
-                    end 
-                end else begin
+            out_buffer_1_w[buf_cnt_1] = out_buffer_1_r[buf_cnt_1] + i_col_data_1;
+            out_buffer_2_w[buf_cnt_2] = out_buffer_2_r[buf_cnt_2] + i_col_data_2;
+            if (buf_cnt_1 == 99 && buf_cnt_2 == 99) begin
+                buf_cnt_1_w = 0;
+                buf_cnt_2_w = 0;
+                // One column of adj matrix is finished
+                if (row_cnt_1 == 99 && row_cnt_2 == 99) begin
+                    // When row_index and buf_cnt counts to 100
+                    // One column of output is finished
+                    o_result_w = 1'b1;
+                    //busy_w = 0;
+                    row_cnt_1_w = 0;
+                    row_cnt_2_w = 0;
+                    o_rdy_w = 1;
+                end 
+                else begin
+                    row_cnt_1_w = row_cnt_1 + 1;
+                    row_cnt_2_w = row_cnt_2 + 1;
+                end 
+            end 
+            else begin
                     buf_cnt_1_w = buf_cnt_1 + 1;
                     buf_cnt_2_w = buf_cnt_2 + 1;    
                     /*o_col_idx_1_w = 0;
@@ -132,12 +135,9 @@ module Scheduler2 (
                     o_col_1_w = 0;
                     o_col_2_w = 0;*/
                     o_result_w = 1'b0;
-                end
-            end else begin
-                out_buffer_1_w[buf_cnt_1] = out_buffer_1_r[buf_cnt_1];// + i_col_data_1;
-                out_buffer_2_w[buf_cnt_2] = out_buffer_2_r[buf_cnt_2];// + i_col_data_2;
-            end  
-        end else begin
+            end
+        end 
+        else begin
             o_pe_valid_w = 1;
             row_cnt_1_w = 0;
             row_cnt_2_w = 0;
@@ -146,6 +146,7 @@ module Scheduler2 (
             out_buffer_1_w[buf_cnt_1] = out_buffer_1_r[buf_cnt_1];
             out_buffer_2_w[buf_cnt_2] = out_buffer_2_r[buf_cnt_2];
         end
+
     end
 
 

@@ -217,8 +217,8 @@ def FP16add(fp1,fp2):
 
     return deinitial(result)
 
-mode = input("0 : generate weight and adjacency\n1 : generate input \n2 : calculate real ans\n3 : generate adjacency\n4 : generate verilog golden\n5 : generate verilog input\n6 : all\nyour mode : ")
-if (mode == '0' or mode == "6") : 
+mode = input("0 : generate weight and adjacency\n1 : generate input \n2 : calculate real ans\n3 : generate adjacency\n4 : generate verilog golden\n5 : generate verilog input\n6 : generate half result\nall : all\nyour mode : ")
+if (mode == '0' or mode == "all") : 
     with open("weight.txt","w") as f:
         for i in range(32):
             for j in range(8):
@@ -244,7 +244,7 @@ if (mode == '0' or mode == "6") :
                 print(adjacency[i][j],end=" ",file=f)
             print("", file=f)    
 
-if (mode == '1' or mode == "6") : 
+if (mode == '1' or mode == "all") : 
     with open("input.txt","w") as f:
         for i in range(100):
             for j in range(32):
@@ -257,7 +257,7 @@ if (mode == '1' or mode == "6") :
                 print(d2b(ipt),end=" ",file=f)
             print("", file=f)
     
-if (mode == '2' or mode == "6") :
+if (mode == '2' or mode == "all") :
     weight = np.zeros((32,8))
     adjacency = np.zeros((100,100),dtype=np.int8)
     input = np.zeros((100,32))
@@ -318,7 +318,7 @@ if (mode == '2' or mode == "6") :
                 print(outV2[i][j],end=" ",file=f1)
             print("",file=f1)
     
-if (mode == '3' or mode == "6") :
+if (mode == '3' or mode == "all") :
     with open ("weight.txt","r") as f1:
         x = 0
     with open ("adjacency.txt","r") as f1:
@@ -333,7 +333,7 @@ if (mode == '3' or mode == "6") :
                 print(";",file=f2)
                 x += 1
 
-if (mode == "4" or mode == "6") :
+if (mode == "4" or mode == "all") :
     weight = np.zeros((32,8),dtype=np.int32)
     adjacency = np.zeros((100,100),dtype=np.int8)
     input = np.zeros((100,32),dtype=np.int32)
@@ -377,7 +377,7 @@ if (mode == "4" or mode == "6") :
             for j in range(8):
                 print(d2b(out2[i][j]),file=f1)
 
-if (mode == '5' or mode == "6") : 
+if (mode == '5' or mode == "all") : 
     weight = np.zeros((32,8),dtype=np.int32)
     input = np.zeros((100,32),dtype=np.int32)
     with open ("weight.txt","r") as f1:
@@ -429,21 +429,36 @@ if (mode == '5' or mode == "6") :
                 for x in control:
                     print(x,file=f2)
                         
+if (mode == '6' or mode == "all") :
 
-# for k in range (100):
-#                     for m in range (32):
-#                         output = 0
-#                         if (input[k][m] != 0):
-#                             input_v.append()
-#                             print(d2b(m,lenth=8),end="",file=f1)
-#                             # print(k,m)
-#                             print(d2b(k,lenth=8),file=f1)
-#                             print('0',file=f2)
-#                             print(d2b(input[k][m]),file=f1)
-#                             output = 1
-#                         if k==99 and m==31:
-#                             print('1',file=f2)
-#                         elif output==1:
-#                             print('0',file=f2)
-#                             print(k,m)
+    weight = np.zeros((32,8),dtype=np.int32)
+    input = np.zeros((100,32),dtype=np.int32)
 
+    with open ("weight.txt","r") as f1:
+        x = 0
+        for i in f1.readlines():
+            y = 0
+            for j in i.split(" ")[:-1]:
+                weight[x][y] = int(j,2)
+                y += 1
+            x += 1
+    with open ("input.txt","r") as f1:
+        x = 0
+        for i in f1.readlines():
+            y = 0   
+            for j in i[:-2].split(" "):
+                input[x][y] = int(j,2)
+                y += 1
+            x += 1
+
+    out1 = np.zeros((100,8),dtype=np.int32)
+    out2 = np.zeros((100,8),dtype=np.int32)
+    for i in range(100) :
+        for j in range(8):
+            for k in range(32):
+                out1[i][j] = FP16add(out1[i][j],FP16multi(input[i][k], weight[k][j]))
+    with open ("halfgolden.txt","w") as f1:
+        for i in range(100):
+            for j in range(8):
+                print(d2b(out1[i][j]),end="     ",file=f1)
+            print("",file=f1)

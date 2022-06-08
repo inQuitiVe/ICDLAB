@@ -32,6 +32,7 @@ module Scheduler1 (
     input  [`DATA_BITS-1:0]         i_pe2_result,
     input                           i_pe1_done,
     input                           i_pe2_done,
+    input                           i_switch,
     output [`DATA_BITS-1:0]         o_result_1,
     output [`DATA_BITS-1:0]         o_result_2,
     output [`OUTPUT_COL_BITS-1:0]   o_col_idx_1,
@@ -54,6 +55,7 @@ reg [`INPUT_ROW_BITS-1:0]   row_ptr_r, row_ptr_w, o_row_ptr_buffer;
 reg [`OUTPUT_ROW_BITS-1:0]  o_row_idx_r, o_row_idx_w;
 reg o_valid_w, o_valid_r;
 reg w_switch_w, w_switch_r;
+reg i_switch_r;
 reg [`WEIGHT_COL_BITS-1:0]  w_col_idx_1_w, w_col_idx_1_r;
 reg [`WEIGHT_COL_BITS-1:0]  w_col_idx_2_w, w_col_idx_2_r;
 // weight buffer
@@ -62,7 +64,6 @@ reg [`DATA_BITS-1:0] w_data_1_r [0:`WEIGHT_ROW_SIZE-1];
 reg [`DATA_BITS-1:0] w_data_2_w [0:`WEIGHT_ROW_SIZE-1];
 reg [`DATA_BITS-1:0] w_data_2_r [0:`WEIGHT_ROW_SIZE-1];
 reg [`WEIGHT_ROW_BITS+1:0] w_row_cnt_w, w_row_cnt_r;
-reg w_buf_cnt_w, w_buf_cnt_r;
 
 assign o_pe1_input = pe1_input_r;
 assign o_pe2_input = pe2_input_r;
@@ -81,11 +82,10 @@ assign o_w_switch = w_switch_r;
 
 integer i;
 always@(*) begin // switch weight column
-    w_switch_w = (i_done_r) ? 1'b1 : w_switch_r; // i_done switch weight column
+    w_switch_w = (i_switch_r) ? 1'b1 : w_switch_r; // i_done switch weight column
     w_col_idx_1_w = w_col_idx_1_r;
     w_col_idx_2_w = w_col_idx_2_r;
     w_row_cnt_w = w_row_cnt_r;
-    w_buf_cnt_w = w_buf_cnt_r;
     for (i=1;i<`WEIGHT_ROW_SIZE;i=i+1) begin
         w_data_1_w[i] = w_data_1_r[i];
         w_data_2_w[i] = w_data_2_r[i];
@@ -93,7 +93,6 @@ always@(*) begin // switch weight column
     if (w_switch_r) begin
         if (i_w_col_idx[0] == 1'b0) begin // odd row
             w_col_idx_1_w = i_w_col_idx;
-            w_buf_cnt_w = w_buf_cnt_r + 1;
             w_data_1_w[`WEIGHT_ROW_SIZE-1] = i_w_data;
             for (i=1;i<`WEIGHT_ROW_SIZE;i=i+1) begin
                 w_data_1_w[i-1] = w_data_1_r[i];
@@ -106,7 +105,7 @@ always@(*) begin // switch weight column
             for (i=1;i<`WEIGHT_ROW_SIZE;i=i+1) begin
                 w_data_2_w[i-1] = w_data_2_r[i];
             end
-            if (w_row_cnt_r == 2*`WEIGHT_ROW_SIZE) begin
+            if (w_row_cnt_r == `WEIGHT_ROW_SIZE-1) begin
                 w_switch_w = 1'b0;
                 w_row_cnt_w = 5'd0;
             end
@@ -116,8 +115,8 @@ end
 
 
 assign o_valid = (i_pe1_done && i_pe2_done) ? 1'b1 : 1'b0;
-assign o_result_1 = i_pe1_result;
-assign o_result_2 = i_pe2_result;
+assign o_result_1 = o_valid ? i_pe1_result : 0;
+assign o_result_2 = o_valid ? i_pe2_result : 0;
 
 always@(*) begin
     o_row_idx_w = o_row_ptr_buffer;
@@ -129,21 +128,29 @@ always@(*) begin
     pe1_input_w = pe1_input_r;
     pe2_input_w = pe2_input_r;
     pe1_weight_w = pe1_weight_r;
-    pe2_weight_w = pe1_weight_r;
+    pe2_weight_w = pe2_weight_r;
+    row_ptr_w = row_ptr_r;
+    if ((i_row_ptr != row_ptr_r) || i_done_r) begin // row switch
+        pe1_ctrl_w = 1'b0; // reset
+        pe2_ctrl_w = 1'b0; // reset
+    end
+    else begin
+        pe1_ctrl_w = 1'b1; // sum
+        pe2_ctrl_w = 1'b1; // sum
+    end
     if (i_rdy) begin
         pe1_input_w = i_data;
         pe2_input_w = i_data;
         pe1_weight_w = w_data_1_r[i_col_idx];
         pe2_weight_w = w_data_2_r[i_col_idx];
         row_ptr_w = i_row_ptr;
-        if ((i_row_ptr != row_ptr_r) || i_done_r) begin // row switch
-                    pe1_ctrl_w = 1'b0; // reset
-                    pe2_ctrl_w = 1'b0; // reset
-        end
-        else begin
-                    pe1_ctrl_w = 1'b1; // sum
-                    pe2_ctrl_w = 1'b1; // sum
-        end
+    end
+    else begin
+        pe1_input_w = 0;
+        pe2_input_w = 0;
+        pe1_weight_w = 0;
+        pe2_weight_w = 0;
+        row_ptr_w = row_ptr_r;
     end
 end
 
@@ -168,6 +175,11 @@ always@(posedge clk or negedge rst) begin
         w_row_cnt_r <= 0;
         o_row_ptr_buffer <= 0;
         i_done_r    <= 0;
+        i_switch_r    <= 0;
+        for (i=0;i<`WEIGHT_ROW_SIZE;i=i+1) begin
+            w_data_1_r[i] <= 0;
+            w_data_2_r[i] <= 0;
+        end
     end
     else begin
         pe1_input_r  <= pe1_input_w;
@@ -187,7 +199,12 @@ always@(posedge clk or negedge rst) begin
         w_col_idx_2_r  <= w_col_idx_2_w;
         w_row_cnt_r <= w_row_cnt_w;
         o_row_ptr_buffer <= row_ptr_r;
-        i_done_r     <=  i_done;
+        i_done_r       <=  i_done;
+        i_switch_r     <=  i_switch;
+        for (i=0;i<`WEIGHT_ROW_SIZE;i=i+1) begin
+            w_data_1_r[i] <= w_data_1_w[i];
+            w_data_2_r[i] <= w_data_2_w[i];
+        end
     end
 end
 
