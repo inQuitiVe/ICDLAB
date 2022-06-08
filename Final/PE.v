@@ -8,6 +8,8 @@ module PE (
     output[15:0] o_result,
     output       o_finish
 );
+
+    parameter TRUE = 1'b1;
     reg ctr1;
     wire ctr1_r;
     reg [15:0] out_r;
@@ -19,8 +21,8 @@ module PE (
     FP16_multi u1_multi(i_wgt, i_ipt, mul_w);
 
     // partial sum
-    wire[15:0] psum, psum_w;
-    reg [15:0] psum_r, p_r;
+    wire[15:0] psum, psum_r;
+    reg [15:0] p_r;
     
     assign o_finish = (ctr1==1'b0) ? 1'b1 : 1'b0;
     assign psum = (ctr1==1'b1) ? out_r : p_r;
@@ -32,7 +34,7 @@ module PE (
 	 
 	assign o_result = out_r;
     assign ctr1_r = InnerAccum_ctr ? 1'b1 : 1'b0;
-
+    assign psum_r = TRUE ? i_psum : 0;
 
 
     always@(posedge clk or negedge rst) begin
@@ -45,11 +47,26 @@ module PE (
         else begin
             mul_r <= mul_w;
             out_r <= out_w;
-            p_r   <=     0;
+            p_r   <= psum_r;
             ctr1  <= ctr1_r;
         end
     end
 
+endmodule
+
+module PE2 (
+    input clk,
+    input rst,  
+    input [15:0] i_wgt,
+    input        i_ipt,
+    input [15:0] i_psum,
+    output[15:0] o_result
+);
+    // multiplication 
+    wire[15:0] mul;
+    assign mul = i_ipt ? i_wgt : 16'b0;
+    // addition
+    FP16_add u1_add(mul, i_psum, o_result);
 endmodule
 
 module FP16_multi(

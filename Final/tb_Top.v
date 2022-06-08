@@ -146,7 +146,7 @@ always @(posedge clk) begin
     tt <= tt+1;
 end
 always @(*)begin
-    if(tt==20'd800)begin
+    if(tt==20'd80000)begin
         $display("timeout!!!!!!!!!!!!!");
         $finish;
     end

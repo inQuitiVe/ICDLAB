@@ -95,8 +95,8 @@ wire [`DATA_BITS-1:0]         s1_pe1_input;
 wire [`DATA_BITS-1:0]         s1_pe2_input;
 wire [`DATA_BITS-1:0]         s2_data_1;
 wire [`DATA_BITS-1:0]         s2_data_2;
-wire [`DATA_BITS-1:0]         s2_adj_1;
-wire [`DATA_BITS-1:0]         s2_adj_2;
+wire                          s2_adj_1;
+wire                          s2_adj_2;
 wire                          s1_pe1_ctrl; // ctrl = 1 ==> sum, ctrl = 0 ==> reset
 wire                          s1_pe2_ctrl;
 wire                          s2_pe1_ctrl; // ctrl = 1 ==> sum, ctrl = 0 ==> reset
@@ -116,6 +116,9 @@ wire [`DATA_BITS-1:0]         s1_pe2_weight;
 reg                           i_s1_rdy=0;
 reg                           i_s2_rdy=0;
 reg                           s1_switch;
+wire  [`DATA_BITS-1:0]         s2_psum1;
+wire  [`DATA_BITS-1:0]         s2_psum2;
+// reg                           i_s1_finish;
 // submodule declaration, TODO: scheduler
 Scheduler1 Scheduler_1(
     .clk(clk),
@@ -154,13 +157,13 @@ Scheduler2 Scheduler_2 (
     .i_rdy_1(s1_valid),            // Scheduler 1 ouyput valid
     .i_data_1(s1_result_1),        // result from PE_1
     .i_data_2(s1_result_2),        // result from PE_2
-    .i_pe_done_1(s2_pe1_done),
-    .i_pe_done_2(s2_pe2_done), 
+    .i_row_idx_1(s1_row_idx_1),
+    .i_row_idx_2(s1_row_idx_2),
     .i_col_data_1(s2_pe1_result),  // PE_3 output
     .i_col_data_2(s2_pe2_result),  // PE_4 output
     .i_col_idx_1(s1_col_idx_1),
     .i_col_idx_2(s1_col_idx_2),
-    .i_row_idx(s1_row_idx_1),
+    // .i_s1_finish(i_s1_finish),
     .o_col_1(s2_col_1),            // buffer 1 output
     .o_col_2(s2_col_2),            // buffer 2 output
     .o_col_idx_1(s2_o_col_idx_1),  // buffer 1 idx
@@ -169,7 +172,8 @@ Scheduler2 Scheduler_2 (
     .o_data_2(s2_data_2),          // PE_4 input
     .o_adj_1(s2_adj_1),            // PE_3 input
     .o_adj_2(s2_adj_2),            // PE_4 input
-    .o_pe_valid(s2_pe_valid),      // ctrl = 1 ==> sum, ctrl = 0 ==> reset
+    .o_pe1_psum(s2_psum1),
+    .o_pe2_psum(s2_psum2),
     .o_result(s2_valid)
 );
 
@@ -195,26 +199,22 @@ PE  PE_2(
     .o_finish(s1_pe2_done)
 );
 
-PE  PE_3(
+PE2  PE_3(
     .clk(clk),
     .rst(rst),
-    .InnerAccum_ctr(s2_pe_valid),    
     .i_wgt(s2_data_1),
     .i_ipt(s2_adj_1),
-    .i_psum(16'd0),
-    .o_result(s2_pe1_result),
-    .o_finish(s2_pe1_done)
+    .i_psum(s2_psum1),
+    .o_result(s2_pe1_result)
 );
 
-PE  PE_4(
+PE2  PE_4(
     .clk(clk),
-    .rst(rst),
-    .InnerAccum_ctr(s2_pe_valid),    
+    .rst(rst),  
     .i_wgt(s2_data_2),
     .i_ipt(s2_adj_2),
-    .i_psum(16'd0),
-    .o_result(s2_pe2_result),
-    .o_finish(s2_pe2_done)
+    .i_psum(s2_psum2),
+    .o_result(s2_pe2_result)
 );
 
 
@@ -267,6 +267,7 @@ always@(*) begin
     s1_w_data = 0;
     w_col_idx_w = w_col_idx_r;
     s1_data = s1_data_buffer;
+    // i_s1_finish = 0;
     case (state_r)
         IDLE: begin
             o_result_w = 1'b1;
@@ -328,7 +329,7 @@ always@(*) begin
             if (s1_valid) begin
                 state_w = S2_COMPUTE;
                 i_s1_rdy = 1'b0;
-                //o_rdy_w = 1'b1;
+                // i_s1_finish = 1'b1;
             end
         end
 
@@ -355,13 +356,16 @@ always@(*) begin
                     if (o_cnt_r < 200) begin
                         o_cnt_w = o_cnt_r + 1;
                         o_buf_w = s2_col_1;
+                        o_buf_cnt_w = o_buf_cnt_r;
                         state_w = state_r;
-                    end else begin
+                        o_rdy_w = 0;
+                    end 
+                    else begin
                         o_cnt_w = 0;
                         o_buf_w = 0;
                         o_rdy_w = 1;
                         state_w = IDLE;
-
+                        o_buf_cnt_w = 0;
                     end
                 end
             endcase
@@ -417,3 +421,11 @@ end
 
 endmodule
 
+
+
+// Q1 : 該如何處理scheduler 2 latency問題？
+// Sol1. 加buffer存scheduler 1的output
+// Sol2. 加控制訊號檔scheduler 1和input data直到scheduler 2算完
+// Q2 : 是否將adjacency matrix轉成sparse來減少latency(100 cycle --> 5 cycle)
+// Sol1. 維持原樣
+// Sol2. 大改scheduler2的架構並另外寫sparse matrix形式的adjacency matrix
