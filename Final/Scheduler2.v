@@ -1,8 +1,7 @@
-`define WEIGHT_ROW_SIZE 50
 `define INPUT_ADDR_BITS 8
-`define INPUT_ROW_BITS 5
+//`define INPUT_ROW_BITS 7
 `define INPUT_DATA_BITS 16
-`define INPUT_ROW_SIZE 200
+//`define INPUT_ROW_SIZE 200
 `define INPUT_DATA_SIZE 100
 `define OUTPUT_ROW_BITS 7 // 2^7=128>100
 
@@ -20,8 +19,8 @@ module Scheduler2 (
     input [2:0]                     i_col_idx_1, // from s1
     input [2:0]                     i_col_idx_2, // from s1
     // input                           i_s1_finish,
-    output [`DATA_BITS-1:0]             o_pe1_psum,
-    output [`DATA_BITS-1:0]             o_pe2_psum,
+    output reg [`DATA_BITS-1:0]             o_pe1_psum,
+    output reg [`DATA_BITS-1:0]             o_pe2_psum,
     output [`INPUT_DATA_BITS-1:0]   o_col_1,     // output
     output [`INPUT_DATA_BITS-1:0]   o_col_2,
     output [2:0]                    o_col_idx_1,
@@ -40,12 +39,12 @@ module Scheduler2 (
     
     reg [`INPUT_DATA_BITS-1:0] s1_data_buffer_1_r [`INPUT_DATA_SIZE-1:0];
     reg [`INPUT_DATA_BITS-1:0] s1_data_buffer_1_w [`INPUT_DATA_SIZE-1:0];
-    reg [`INPUT_ROW_BITS-1:0]  s1_row_buffer_1_r  [`INPUT_DATA_SIZE-1:0];
-    reg [`INPUT_ROW_BITS-1:0]  s1_row_buffer_1_w  [`INPUT_DATA_SIZE-1:0];
+    reg [`OUTPUT_ROW_BITS-1:0]  s1_row_buffer_1_r  [`INPUT_DATA_SIZE-1:0];
+    reg [`OUTPUT_ROW_BITS-1:0]  s1_row_buffer_1_w  [`INPUT_DATA_SIZE-1:0];
     reg [`INPUT_DATA_BITS-1:0] s1_data_buffer_2_r [`INPUT_DATA_SIZE-1:0];
     reg [`INPUT_DATA_BITS-1:0] s1_data_buffer_2_w [`INPUT_DATA_SIZE-1:0];
-    reg [`INPUT_ROW_BITS-1:0]  s1_row_buffer_2_r  [`INPUT_DATA_SIZE-1:0];
-    reg [`INPUT_ROW_BITS-1:0]  s1_row_buffer_2_w  [`INPUT_DATA_SIZE-1:0];
+    reg [`OUTPUT_ROW_BITS-1:0]  s1_row_buffer_2_r  [`INPUT_DATA_SIZE-1:0];
+    reg [`OUTPUT_ROW_BITS-1:0]  s1_row_buffer_2_w  [`INPUT_DATA_SIZE-1:0];
 
     reg [`INPUT_DATA_BITS-1:0] out_buffer_1_r [`INPUT_DATA_SIZE-1:0];
     reg [`INPUT_DATA_BITS-1:0] out_buffer_1_w [`INPUT_DATA_SIZE-1:0];
@@ -71,8 +70,8 @@ module Scheduler2 (
     reg [`INPUT_DATA_BITS-1:0] o_adj_1_r, o_adj_1_w;
     reg [`INPUT_DATA_BITS-1:0] o_adj_2_r, o_adj_2_w;
 
-    reg [`DATA_BITS-1:0]             o_pe1_psum;
-    reg [`DATA_BITS-1:0]             o_pe2_psum;
+    //reg [`DATA_BITS-1:0]             o_pe1_psum;
+    //reg [`DATA_BITS-1:0]             o_pe2_psum;
 
     assign o_col_1 = o_col_1_r;
     assign o_col_2 = o_col_2_r;

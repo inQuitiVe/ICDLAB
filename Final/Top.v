@@ -154,7 +154,8 @@ Scheduler1 Scheduler_1(
 Scheduler2 Scheduler_2 (
     .clk(clk),
     .rst(rst),
-    .i_rdy_1(s1_valid),            // Scheduler 1 ouyput valid
+    .i_rdy_1(s1_valid),            // Scheduler 1 output valid
+    .i_rdy_2(s1_valid),            // Scheduler 1 output valid
     .i_data_1(s1_result_1),        // result from PE_1
     .i_data_2(s1_result_2),        // result from PE_2
     .i_row_idx_1(s1_row_idx_1),
