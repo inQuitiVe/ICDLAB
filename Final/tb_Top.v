@@ -1,9 +1,10 @@
+`timescale  1ns / 1ps
 //~ `New testbench
-`include "Top.v"
+//`include "Top.v"
 `include "PE.v"
 `include "Scheduler1.v"
 `include "Scheduler2.v"
-`timescale  1ns / 1ps
+
 
 module tb_GCN;
 
@@ -160,8 +161,8 @@ initial begin
     $readmemb("cmd_v.txt",cmd);
 
     @(posedge clk);
-     for (i=0; i<100; i+=1)begin
-        for (j=0; j<8; j+=1)begin
+     for (i=0; i<100; i = i+1)begin
+        for (j=0; j<8; j = j+1)begin
             gold[i][j] = golden[i*100+j];
         end
     end
@@ -185,7 +186,7 @@ initial begin
         while(o_rdy == 1'b1) begin
             @(posedge clk)
             task1;
-            count += 1;
+            count = count + 1;
         end
     end
     $finish;
